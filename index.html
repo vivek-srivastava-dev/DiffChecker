@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>DiffChecker</title>
+    <style>
+      /* Global Styles */
+      body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        margin: 0;
+        padding: 0;
+        box-sizing: border-box;
+        background-color: #ffffff;
+      }
+      header {
+        width: 100%;
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        padding: 0px 10px;
+      }
+      header nav {
+        width: 80%;
+      }
+      header button {
+        width: 20%;
+      }
+      /* Main Container */
+      .container {
+        min-height: 100vh;
+        padding: 20px;
+      }
+
+      /* Title */
+      h1 {
+        text-align: center;
+        color: #2c3e50;
+        font-size: 2em;
+        margin-bottom: 20px;
+        letter-spacing: 1px;
+      }
+
+      /* Flex Layout for Textareas */
+      .diff-container {
+        display: flex;
+        justify-content: space-between;
+        gap: 20px;
+      }
+
+      /* Textarea Styling */
+      textarea {
+        width: 48%;
+        height: 300px;
+        padding: 15px;
+        font-size: 14px;
+        line-height: 1.5;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        resize: none;
+        box-sizing: border-box;
+        background-color: #fafafa;
+        color: #444;
+        font-family: "Courier New", Courier, monospace;
+        transition: all 0.3s ease;
+      }
+
+      textarea:focus {
+        border-color: #007bff;
+        background-color: #f0f8ff;
+        outline: none;
+      }
+
+      /* Button Styling */
+      button {
+        display: block;
+        width: fit-content;
+        margin: 20px auto;
+        padding: 12px 18px;
+        font-size: 16px;
+        background-color: #3498db;
+        color: white;
+        border: none;
+        border-radius: 25px;
+        cursor: pointer;
+        transition: background-color 0.3s ease;
+      }
+
+      button:hover {
+        background-color: #2980b9;
+      }
+
+      button:active {
+        transform: scale(0.98);
+      }
+      .diff-output {
+        margin-top: 20px;
+        padding: 0;
+        border-radius: 8px;
+        overflow: hidden;
+        font-family: "Courier New", Courier, monospace;
+      }
+
+      .diff-row {
+        display: flex;
+        border-bottom: 1px solid #e0e0e0;
+      }
+
+      .diff-cell {
+        width: 50%;
+        padding: 10px 15px;
+        box-sizing: border-box;
+        white-space: pre-wrap;
+        word-wrap: break-word;
+      }
+
+      .diff-label {
+        font-weight: bold;
+        margin-right: 6px;
+        color: #888;
+      }
+
+      .added .diff-cell.right {
+        background-color: #d4edda;
+      }
+
+      .removed .diff-cell.left {
+        background-color: #f8d7da;
+      }
+
+      .same .diff-cell {
+        background-color: #f4f4f4;
+      }
+
+      .empty .diff-cell {
+        background-color: #f0f0f0;
+      }
+
+      @media (max-width: 768px) {
+        .diff-row {
+          flex-direction: column;
+        }
+
+        .diff-cell {
+          width: 100%;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <header>
+        <nav>DiffChecker</nav>
+
+        <!-- Check Difference Button -->
+        <button onclick="checkDiff()">Check Difference</button>
+      </header>
+
+      <!-- Textarea Inputs with Line Numbers -->
+      <div class="diff-container">
+        <div class="textarea-wrapper">
+          <div class="line-numbers" id="lines1"></div>
+          <textarea
+            id="text1"
+            placeholder="Enter first text here..."
+            oninput="updateLineNumbers('text1', 'lines1')"
+          ></textarea>
+        </div>
+        <div class="textarea-wrapper">
+          <div class="line-numbers" id="lines2"></div>
+          <textarea
+            id="text2"
+            placeholder="Enter second text here..."
+            oninput="updateLineNumbers('text2', 'lines2')"
+          ></textarea>
+        </div>
+      </div>
+
+      <!-- Output Diff -->
+      <div id="output" class="diff-output">
+        <div class="diff-row" style="font-weight: bold; background: #eee">
+          <div class="diff-cell">Original</div>
+          <div class="diff-cell">Modified</div>
+        </div>
+      </div>
+    </div>
+
+    <script>
+      function updateLineNumbers(textareaId, lineNumberId) {
+        const textarea = document.getElementById(textareaId);
+        const lineNumbers = document.getElementById(lineNumberId);
+        const lines = textarea.value.split("\n").length;
+        lineNumbers.innerHTML = Array.from(
+          { length: lines },
+          (_, i) => i + 1
+        ).join("<br>");
+      }
+      function checkDiff() {
+        const text1 = document.getElementById("text1").value.trim();
+        const text2 = document.getElementById("text2").value.trim();
+
+        const lines1 = text1.split("\n");
+        const lines2 = text2.split("\n");
+
+        const output = document.getElementById("output");
+        output.innerHTML = "";
+
+        const maxLength = Math.max(lines1.length, lines2.length);
+
+        // Optional: Add header row
+        const header = document.createElement("div");
+        header.classList.add("diff-row");
+        header.style.fontWeight = "bold";
+        header.style.backgroundColor = "#e0e0e0";
+        header.innerHTML = `
+    <div class="diff-cell">Original</div>
+    <div class="diff-cell">Modified</div>
+  `;
+        output.appendChild(header);
+
+        for (let i = 0; i < maxLength; i++) {
+          const line1 = lines1[i] || "";
+          const line2 = lines2[i] || "";
+
+          if (line1 !== line2) {
+            const row = document.createElement("div");
+            row.classList.add("diff-row");
+
+            const cell1 = document.createElement("div");
+            const cell2 = document.createElement("div");
+
+            cell1.classList.add("diff-cell", "left");
+            cell2.classList.add("diff-cell", "right");
+
+            // Add highlighting for added/removed
+            if (line1 && !line2) {
+              row.classList.add("removed");
+            } else if (!line1 && line2) {
+              row.classList.add("added");
+            } else {
+              row.classList.add("removed", "added");
+            }
+
+            cell1.innerHTML = `<span class="diff-label">${
+              i + 1
+            }</span> ${line1}`;
+            cell2.innerHTML = `<span class="diff-label">${
+              i + 1
+            }</span> ${line2}`;
+
+            row.appendChild(cell1);
+            row.appendChild(cell2);
+            output.appendChild(row);
+          }
+        }
+
+        // If no differences, show a friendly message
+        if (output.children.length === 1) {
+          const msg = document.createElement("div");
+          msg.style.padding = "20px";
+          msg.style.textAlign = "center";
+          msg.style.color = "#28a745";
+          msg.style.fontWeight = "bold";
+          msg.textContent = "No differences found!";
+          output.appendChild(msg);
+        }
+      }
+
+      // Initial line number population
+      updateLineNumbers("text1", "lines1");
+      updateLineNumbers("text2", "lines2");
+    </script>
+
+    <style>
+      .textarea-wrapper {
+        position: relative;
+        width: 48%;
+        display: flex;
+        background-color: #fafafa;
+        border: 1px solid #ccc;
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 4px 5px rgba(207, 207, 207, 0.442);
+      }
+
+      .line-numbers {
+        background-color: #e9ecef;
+        padding: 15px 10px;
+        font-size: 14px;
+        line-height: 1.5;
+        text-align: right;
+        user-select: none;
+        color: #666;
+        font-family: "Courier New", Courier, monospace;
+      }
+
+      textarea {
+        border: none;
+        width: 100%;
+        height: 300px;
+        padding: 15px;
+        font-size: 14px;
+        line-height: 1.5;
+        resize: none;
+        outline: none;
+        background-color: transparent;
+        color: #444;
+        font-family: "Courier New", Courier, monospace;
+        overflow-y: auto;
+      }
+
+      .textarea-wrapper textarea:focus {
+        background-color: #f0f8ff;
+      }
+
+      .line span strong {
+        color: #555;
+        margin-right: 5px;
+      }
+    </style>
+  </body>
+</html>
